@@ -1,0 +1,6 @@
+{
+  "name": "mem",
+  "connector": "memory",
+  "localStorage": "",
+  "file": ""
+}
