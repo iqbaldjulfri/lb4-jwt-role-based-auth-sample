@@ -6,8 +6,8 @@ import {RestApplication} from '@loopback/rest';
 import {ServiceMixin} from '@loopback/service-proxy';
 import * as path from 'path';
 import {MySequence} from './sequence';
-import {AuthenticationComponent, AuthenticationBindings} from '@loopback/authentication';
-import {MyAuthMetadataProvider, MyAuthStrategyProvider, MyAuthActionProvider} from './auth';
+import {AuthenticationBindings} from '@loopback/authentication';
+import {MyAuthMetadataProvider, MyAuthStrategyProvider, MyAuthActionProvider, MyAuthBindings} from './auth';
 import {UserRepository, RoleRepository, UserRoleRepository} from './repositories';
 
 export class Lb4JwtRoleBasedAuthSampleApplication extends BootMixin(ServiceMixin(RepositoryMixin(RestApplication))) {
@@ -26,9 +26,9 @@ export class Lb4JwtRoleBasedAuthSampleApplication extends BootMixin(ServiceMixin
     });
     this.component(RestExplorerComponent);
 
-    this.component(AuthenticationComponent);
+    // this.component(AuthenticationComponent);
     this.bind(AuthenticationBindings.METADATA).toProvider(MyAuthMetadataProvider);
-    this.bind(AuthenticationBindings.STRATEGY).toProvider(MyAuthStrategyProvider);
+    this.bind(MyAuthBindings.STRATEGY).toProvider(MyAuthStrategyProvider);
     this.bind(AuthenticationBindings.AUTH_ACTION).toProvider(MyAuthActionProvider);
 
     this.projectRoot = __dirname;

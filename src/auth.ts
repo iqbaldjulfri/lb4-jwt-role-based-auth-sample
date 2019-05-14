@@ -8,6 +8,7 @@ import {
   ValueOrPromise,
   Getter,
   Setter,
+  BindingKey,
 } from '@loopback/core';
 import {
   AUTHENTICATION_METADATA_KEY,
@@ -83,6 +84,11 @@ export const JWT_SECRET = 'changeme';
 export interface Credentials {
   username: string;
   password: string;
+}
+
+// implement custom namespace bindings
+export declare namespace MyAuthBindings {
+  const STRATEGY: BindingKey<Strategy | undefined>;
 }
 
 // the strategy provider will parse the specifed strategy, and act accordingly
@@ -163,7 +169,7 @@ export class MyAuthStrategyProvider implements Provider<Strategy | undefined> {
 // the entry point for authentication.
 export class MyAuthActionProvider implements Provider<AuthenticateFn> {
   constructor(
-    @inject.getter(AuthenticationBindings.STRATEGY) readonly getStrategy: Getter<Strategy>,
+    @inject.getter(MyAuthBindings.STRATEGY) readonly getStrategy: Getter<Strategy>,
     @inject.setter(AuthenticationBindings.CURRENT_USER) readonly setCurrentUser: Setter<UserProfile>,
     @inject(AuthenticationBindings.METADATA) private metadata: MyAuthenticationMetadata,
   ) {}
