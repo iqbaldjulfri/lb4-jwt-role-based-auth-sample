@@ -6,7 +6,7 @@ import { RestApplication } from '@loopback/rest';
 import { ServiceMixin } from '@loopback/service-proxy';
 import * as path from 'path';
 import { MySequence } from './sequence';
-import { AuthenticationComponent, AuthenticationBindings } from '@loopback/authentication';
+import { AuthenticationBindings } from '@loopback/authentication';
 import { MyAuthMetadataProvider, MyAuthStrategyProvider, MyAuthActionProvider, MyAuthBindings } from './auth';
 import { UserRepository, RoleRepository, UserRoleRepository } from './repositories';
 
