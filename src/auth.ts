@@ -18,12 +18,12 @@ import {
   AuthenticateFn,
   StrategyAdapter,
 } from '@loopback/authentication';
-import { AuthMetadataProvider } from '@loopback/authentication/dist/providers/auth-metadata.provider';
-import { Strategy } from 'passport';
-import { UserRepository, UserRoleRepository } from './repositories';
-import { repository } from '@loopback/repository';
-import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
-import { HttpErrors, Request } from '@loopback/rest';
+import {AuthMetadataProvider} from '@loopback/authentication/dist/providers/auth-metadata.provider';
+import {Strategy} from 'passport';
+import {UserRepository, UserRoleRepository} from './repositories';
+import {repository} from '@loopback/repository';
+import {Strategy as JwtStrategy, ExtractJwt} from 'passport-jwt';
+import {HttpErrors, Request} from '@loopback/rest';
 
 // the decorator function, every required param has its own default
 // so we can supply empty param when calling this decorartor.
@@ -61,8 +61,8 @@ export interface MyAuthenticationMetadata extends AuthenticationMetadata {
 // metadata provider for `MyAuthenticationMetadata`. Will supply method's metadata when injected
 export class MyAuthMetadataProvider extends AuthMetadataProvider {
   constructor(
-    @inject(CoreBindings.CONTROLLER_CLASS, { optional: true }) protected _controllerClass: Constructor<{}>,
-    @inject(CoreBindings.CONTROLLER_METHOD_NAME, { optional: true }) protected _methodName: string,
+    @inject(CoreBindings.CONTROLLER_CLASS, {optional: true}) protected _controllerClass: Constructor<{}>,
+    @inject(CoreBindings.CONTROLLER_METHOD_NAME, {optional: true}) protected _methodName: string,
   ) {
     super(_controllerClass, _methodName);
   }
@@ -97,12 +97,12 @@ export class MyAuthStrategyProvider implements Provider<Strategy | undefined> {
     @inject(AuthenticationBindings.METADATA) private metadata: MyAuthenticationMetadata,
     @repository(UserRepository) private userRepository: UserRepository,
     @repository(UserRoleRepository) private userRoleRepository: UserRoleRepository,
-  ) { }
+  ) {}
 
   value(): ValueOrPromise<Strategy | undefined> {
     if (!this.metadata) return;
 
-    const { strategy } = this.metadata;
+    const {strategy} = this.metadata;
     if (strategy === 'jwt') {
       return new JwtStrategy(
         {
@@ -122,13 +122,13 @@ export class MyAuthStrategyProvider implements Provider<Strategy | undefined> {
     done: (err: Error | null, user?: UserProfile | false, info?: Object) => void,
   ) {
     try {
-      const { username } = payload;
+      const {username} = payload;
       const user = await this.userRepository.findById(username);
       if (!user) done(null, false);
 
       await this.verifyRoles(username);
 
-      done(null, { name: username, email: user.email, id: username });
+      done(null, {name: username, email: user.email, id: username});
     } catch (err) {
       if (err.name === 'UnauthorizedError') done(null, false);
       done(err, false);
@@ -137,20 +137,20 @@ export class MyAuthStrategyProvider implements Provider<Strategy | undefined> {
 
   // verify user's role based on the SecuredType
   async verifyRoles(username: string) {
-    const { type, roles } = this.metadata;
+    const {type, roles} = this.metadata;
 
     if ([SecuredType.IS_AUTHENTICATED, SecuredType.PERMIT_ALL].includes(type)) return;
 
     if (type === SecuredType.HAS_ANY_ROLE) {
       if (!roles.length) return;
-      const { count } = await this.userRoleRepository.count({
+      const {count} = await this.userRoleRepository.count({
         userId: username,
-        roleId: { inq: roles },
+        roleId: {inq: roles},
       });
 
       if (count) return;
     } else if (type === SecuredType.HAS_ROLES && roles.length) {
-      const userRoles = await this.userRoleRepository.find({ where: { userId: username } });
+      const userRoles = await this.userRoleRepository.find({where: {userId: username}});
       const roleIds = userRoles.map(ur => ur.roleId);
       let valid = true;
       for (const role of roles)
@@ -172,7 +172,7 @@ export class MyAuthActionProvider implements Provider<AuthenticateFn> {
     @inject.getter(MyAuthBindings.STRATEGY) readonly getStrategy: Getter<Strategy>,
     @inject.setter(AuthenticationBindings.CURRENT_USER) readonly setCurrentUser: Setter<UserProfile>,
     @inject(AuthenticationBindings.METADATA) private metadata: MyAuthenticationMetadata,
-  ) { }
+  ) {}
 
   value(): AuthenticateFn {
     return request => this.action(request);
