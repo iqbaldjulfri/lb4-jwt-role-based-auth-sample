@@ -87,8 +87,8 @@ export interface Credentials {
 }
 
 // implement custom namespace bindings
-export declare namespace MyAuthBindings {
-  const STRATEGY: BindingKey<Strategy | undefined>;
+export namespace MyAuthBindings {
+  export const STRATEGY = BindingKey.create<Strategy | undefined>('authentication.strategy');
 }
 
 // the strategy provider will parse the specifed strategy, and act accordingly
