@@ -171,7 +171,7 @@ export class MyAuthActionProvider implements Provider<AuthenticateFn> {
   constructor(
     @inject.getter(MyAuthBindings.STRATEGY) readonly getStrategy: Getter<Strategy>,
     @inject.setter(AuthenticationBindings.CURRENT_USER) readonly setCurrentUser: Setter<UserProfile>,
-    @inject(AuthenticationBindings.METADATA) private metadata: MyAuthenticationMetadata,
+    @inject.getter(AuthenticationBindings.METADATA) readonly getMetadata: Getter<MyAuthenticationMetadata>,
   ) {}
 
   value(): AuthenticateFn {
@@ -179,7 +179,8 @@ export class MyAuthActionProvider implements Provider<AuthenticateFn> {
   }
 
   async action(request: Request): Promise<UserProfile | undefined> {
-    if (this.metadata && this.metadata.type === SecuredType.PERMIT_ALL) return;
+    const metadata = await this.getMetadata();
+    if (metadata && metadata.type === SecuredType.PERMIT_ALL) return;
 
     const strategy = await this.getStrategy();
     if (!strategy) return;
