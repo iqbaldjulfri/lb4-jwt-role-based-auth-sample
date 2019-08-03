@@ -16,14 +16,16 @@ import {
   AuthenticationBindings,
   UserProfile,
   AuthenticateFn,
-  StrategyAdapter,
+  AuthenticationStrategy,
 } from '@loopback/authentication';
-import {AuthMetadataProvider} from '@loopback/authentication/dist/providers/auth-metadata.provider';
-import {Strategy} from 'passport';
-import {UserRepository, UserRoleRepository} from './repositories';
-import {repository} from '@loopback/repository';
-import {Strategy as JwtStrategy, ExtractJwt} from 'passport-jwt';
-import {HttpErrors, Request} from '@loopback/rest';
+import { StrategyAdapter } from '@loopback/authentication-passport';
+import { AuthMetadataProvider } from '@loopback/authentication/dist/providers/auth-metadata.provider';
+import { UserRepository, UserRoleRepository } from './repositories';
+import { repository } from '@loopback/repository';
+import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
+import { HttpErrors, Request } from '@loopback/rest';
+
+export const JWT_STRATEGY_NAME = 'jwt';
 
 // the decorator function, every required param has its own default
 // so we can supply empty param when calling this decorartor.
@@ -61,8 +63,8 @@ export interface MyAuthenticationMetadata extends AuthenticationMetadata {
 // metadata provider for `MyAuthenticationMetadata`. Will supply method's metadata when injected
 export class MyAuthMetadataProvider extends AuthMetadataProvider {
   constructor(
-    @inject(CoreBindings.CONTROLLER_CLASS, {optional: true}) protected _controllerClass: Constructor<{}>,
-    @inject(CoreBindings.CONTROLLER_METHOD_NAME, {optional: true}) protected _methodName: string,
+    @inject(CoreBindings.CONTROLLER_CLASS, { optional: true }) protected _controllerClass: Constructor<{}>,
+    @inject(CoreBindings.CONTROLLER_METHOD_NAME, { optional: true }) protected _methodName: string,
   ) {
     super(_controllerClass, _methodName);
   }
@@ -88,29 +90,36 @@ export interface Credentials {
 
 // implement custom namespace bindings
 export namespace MyAuthBindings {
-  export const STRATEGY = BindingKey.create<Strategy | undefined>('authentication.strategy');
+  export const STRATEGY = BindingKey.create<AuthenticationStrategy | undefined>('authentication.strategy');
 }
 
 // the strategy provider will parse the specifed strategy, and act accordingly
-export class MyAuthStrategyProvider implements Provider<Strategy | undefined> {
+export class MyAuthAuthenticationStrategyProvider implements Provider<AuthenticationStrategy | undefined> {
   constructor(
     @inject(AuthenticationBindings.METADATA) private metadata: MyAuthenticationMetadata,
     @repository(UserRepository) private userRepository: UserRepository,
     @repository(UserRoleRepository) private userRoleRepository: UserRoleRepository,
-  ) {}
+  ) { }
 
-  value(): ValueOrPromise<Strategy | undefined> {
+  value(): ValueOrPromise<AuthenticationStrategy | undefined> {
     if (!this.metadata) return;
 
-    const {strategy} = this.metadata;
-    if (strategy === 'jwt') {
-      return new JwtStrategy(
+    const { strategy } = this.metadata;
+    if (strategy === JWT_STRATEGY_NAME) {
+      const jwtStrategy = new JwtStrategy(
         {
           secretOrKey: JWT_SECRET,
-          jwtFromRequest: ExtractJwt.fromUrlQueryParameter('access_token'),
+          jwtFromRequest: ExtractJwt.fromExtractors([
+            ExtractJwt.fromAuthHeaderAsBearerToken(),
+            ExtractJwt.fromUrlQueryParameter('access_token'),
+          ]),
         },
         (payload, done) => this.verifyToken(payload, done),
       );
+
+      // we will use Loopback's  StrategyAdapter so we can leverage passport's strategy
+      // and also we don't have to implement a new strategy adapter.
+      return new StrategyAdapter(jwtStrategy, JWT_STRATEGY_NAME);
     }
   }
 
@@ -122,13 +131,13 @@ export class MyAuthStrategyProvider implements Provider<Strategy | undefined> {
     done: (err: Error | null, user?: UserProfile | false, info?: Object) => void,
   ) {
     try {
-      const {username} = payload;
+      const { username } = payload;
       const user = await this.userRepository.findById(username);
       if (!user) done(null, false);
 
       await this.verifyRoles(username);
 
-      done(null, {name: username, email: user.email, id: username});
+      done(null, { name: username, email: user.email, id: username });
     } catch (err) {
       if (err.name === 'UnauthorizedError') done(null, false);
       done(err, false);
@@ -137,20 +146,20 @@ export class MyAuthStrategyProvider implements Provider<Strategy | undefined> {
 
   // verify user's role based on the SecuredType
   async verifyRoles(username: string) {
-    const {type, roles} = this.metadata;
+    const { type, roles } = this.metadata;
 
     if ([SecuredType.IS_AUTHENTICATED, SecuredType.PERMIT_ALL].includes(type)) return;
 
     if (type === SecuredType.HAS_ANY_ROLE) {
       if (!roles.length) return;
-      const {count} = await this.userRoleRepository.count({
+      const { count } = await this.userRoleRepository.count({
         userId: username,
-        roleId: {inq: roles},
+        roleId: { inq: roles },
       });
 
       if (count) return;
     } else if (type === SecuredType.HAS_ROLES && roles.length) {
-      const userRoles = await this.userRoleRepository.find({where: {userId: username}});
+      const userRoles = await this.userRoleRepository.find({ where: { userId: username } });
       const roleIds = userRoles.map(ur => ur.roleId);
       let valid = true;
       for (const role of roles)
@@ -169,10 +178,10 @@ export class MyAuthStrategyProvider implements Provider<Strategy | undefined> {
 // the entry point for authentication.
 export class MyAuthActionProvider implements Provider<AuthenticateFn> {
   constructor(
-    @inject.getter(MyAuthBindings.STRATEGY) readonly getStrategy: Getter<Strategy>,
+    @inject.getter(MyAuthBindings.STRATEGY) readonly getStrategy: Getter<AuthenticationStrategy>,
     @inject.setter(AuthenticationBindings.CURRENT_USER) readonly setCurrentUser: Setter<UserProfile>,
     @inject.getter(AuthenticationBindings.METADATA) readonly getMetadata: Getter<MyAuthenticationMetadata>,
-  ) {}
+  ) { }
 
   value(): AuthenticateFn {
     return request => this.action(request);
@@ -185,10 +194,9 @@ export class MyAuthActionProvider implements Provider<AuthenticateFn> {
     const strategy = await this.getStrategy();
     if (!strategy) return;
 
-    // we will use Loopback's  StrategyAdapter so we can leverage passport's strategy
-    // and also we don't have to implement a new strategy adapter.
-    const strategyAdapter = new StrategyAdapter(strategy);
-    const user = await strategyAdapter.authenticate(request);
+    const user = await strategy.authenticate(request);
+    if (!user) return;
+
     this.setCurrentUser(user);
     return user;
   }
