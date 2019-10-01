@@ -14,10 +14,10 @@ import {
   AUTHENTICATION_METADATA_KEY,
   AuthenticationMetadata,
   AuthenticationBindings,
-  UserProfile,
   AuthenticateFn,
   AuthenticationStrategy,
 } from '@loopback/authentication';
+import {UserProfile, securityId} from '@loopback/security';
 import {StrategyAdapter} from '@loopback/authentication-passport';
 import {AuthMetadataProvider} from '@loopback/authentication/dist/providers/auth-metadata.provider';
 import {UserRepository, UserRoleRepository} from './repositories';
@@ -137,7 +137,7 @@ export class MyAuthAuthenticationStrategyProvider implements Provider<Authentica
 
       await this.verifyRoles(username);
 
-      done(null, {name: username, email: user.email, id: username});
+      done(null, {name: username, email: user.email, [securityId]: username});
     } catch (err) {
       if (err.name === 'UnauthorizedError') done(null, false);
       done(err, false);

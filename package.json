@@ -11,17 +11,16 @@
     "node": ">=8.9"
   },
   "scripts": {
-    "build:apidocs": "lb-apidocs",
-    "build": "lb-tsc es2017 --outDir dist",
+    "build": "lb-tsc",
     "build:watch": "lb-tsc --watch",
-    "clean": "lb-clean dist",
-    "lint": "npm run prettier:check && npm run tslint",
-    "lint:fix": "npm run tslint:fix && npm run prettier:fix",
+    "clean": "lb-clean dist *.tsbuildinfo",
+    "lint": "npm run prettier:check && npm run eslint",
+    "lint:fix": "npm run eslint:fix && npm run prettier:fix",
     "prettier:cli": "lb-prettier \"**/*.ts\" \"**/*.js\"",
     "prettier:check": "npm run prettier:cli -- -l",
     "prettier:fix": "npm run prettier:cli -- --write",
-    "tslint": "lb-tslint",
-    "tslint:fix": "npm run tslint -- --fix",
+    "eslint": "lb-eslint --report-unused-disable-directives .",
+    "eslint:fix": "npm run eslint -- --fix",
     "pretest": "npm run clean && npm run build",
     "test": "lb-mocha --allow-console-logs \"dist/__tests__\"",
     "posttest": "npm run lint",
@@ -30,7 +29,7 @@
     "docker:run": "docker run -p 3000:3000 -d lb4-jwt-role-based-auth-sample",
     "migrate": "node ./dist/migrate",
     "prestart": "npm run build",
-    "start": "node .",
+    "start": "node -r source-map-support/register .",
     "prepublishOnly": "npm run test"
   },
   "repository": {
@@ -47,8 +46,8 @@
     "!*/__tests__"
   ],
   "dependencies": {
-    "@loopback/authentication": "^3.0.0",
-    "@loopback/authentication-passport": "^0.1.0",
+    "@loopback/authentication": "^3.1.1",
+    "@loopback/authentication-passport": "^1.0.1",
     "@loopback/boot": "^1.5.8",
     "@loopback/context": "^1.23.2",
     "@loopback/core": "^1.10.4",
@@ -63,16 +62,17 @@
   },
   "devDependencies": {
     "@loopback/build": "^2.0.13",
-    "source-map-support": "^0.5.13",
+    "@loopback/eslint-config": "^4.1.1",
     "@loopback/testlab": "^1.9.1",
     "@types/node": "^10.14.19",
-    "@typescript-eslint/parser": "^2.3.1",
+    "@types/passport-jwt": "^3.0.2",
     "@typescript-eslint/eslint-plugin": "^2.3.1",
-    "@loopback/eslint-config": "^4.1.1",
+    "@typescript-eslint/parser": "^2.3.1",
     "eslint": "^6.4.0",
     "eslint-config-prettier": "^6.3.0",
     "eslint-plugin-eslint-plugin": "^2.1.0",
     "eslint-plugin-mocha": "^6.1.1",
+    "source-map-support": "^0.5.13",
     "typescript": "~3.6.3"
   }
 }
