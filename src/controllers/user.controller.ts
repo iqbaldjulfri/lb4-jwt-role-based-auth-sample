@@ -21,6 +21,7 @@ export class UserController {
 
   @post('/users/login')
   async login(@requestBody() credentials: Credentials) {
+    if (!credentials.username || !credentials.password) throw new HttpErrors.BadRequest('Missing Username or Password');
     const user = await this.userRepository.findOne({where: {id: credentials.username}});
     if (!user) throw new HttpErrors.Unauthorized('Invalid credentials');
 
